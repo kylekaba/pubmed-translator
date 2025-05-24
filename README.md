@@ -4,9 +4,9 @@
 
 ## 📖 Description
 
-This project is a web-based tool designed to make complex medical research from PubMed more accessible. It fetches a PubMed article abstract, generates a plain language summary in English, and then translates that summary into various languages. The core AI functionalities are powered by the Qwen 3 32B model, accessed via Cerebras on the OpenRouter API.
+This project is a web-based tool designed to make complex medical research from PubMed more accessible. It fetches a PubMed article abstract, generates a plain language summary in English, and then translates that summary into various languages. The core AI functionalities are powered by the Qwen 3 32B model, accessed via Cerebras on the OpenRouter API. 
 
-This tool was developed to help bridge the gap between dense medical jargon and the general public, as well as to provide multilingual access to medical information.
+This tool was developed to help bridge the gap between dense medical jargon and the general public, as well as to provide multilingual access to medical information, and was built on May 24, 2025 between the hours of 11 AM - 3 PM PST for the Cerebras + OpenRouter Hackathon. Much thanks to Cerebras for providing the computing resources and OpenRouter for hosting the Qwen3 32B model! 
 
 ## ✨ Features
 
