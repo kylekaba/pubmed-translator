@@ -1,0 +1,748 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PubMed Abstract Translator</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            /* Cerebras Theme: Dark background */
+            background: #1A1A1A; /* Dark gray/off-black */
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            /* Keep content area light for readability, but less transparent */
+            background: rgba(255, 255, 255, 0.98); 
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2); /* Slightly stronger shadow on dark bg */
+            overflow: hidden;
+        }
+
+        .header {
+            /* Cerebras Theme: Orange gradient header */
+            background: linear-gradient(135deg, #F37021 0%, #E65A00 100%); /* Orange to darker orange */
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            font-weight: 300;
+        }
+
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+
+        .main-content {
+            padding: 40px;
+        }
+
+        .input-section {
+            margin-bottom: 30px;
+        }
+
+        .input-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        input[type="text"], input[type="url"], input[type="password"], select, textarea {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 16px;
+            transition: all 0.3s ease;
+        }
+
+        input[type="text"]:focus, input[type="url"]:focus, input[type="password"]:focus, select:focus, textarea:focus {
+            outline: none;
+            /* Cerebras Theme: Orange focus */
+            border-color: #F37021;
+            box-shadow: 0 0 0 3px rgba(243, 112, 33, 0.2); /* Orange shadow */
+        }
+
+        #openrouter-api-key {
+            padding-top: 18px;      /* Increased top padding */
+            padding-bottom: 18px;   /* Increased bottom padding */
+            font-size: 17px;        /* Slightly larger font */
+        }
+
+        .api-config {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+
+        .api-config h3 {
+            color: #333;
+            margin-bottom: 15px;
+        }
+
+        button {
+            /* Cerebras Theme: Orange button */
+            background: linear-gradient(135deg, #F37021 0%, #E65A00 100%);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-right: 10px;
+            margin-bottom: 10px;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+        }
+
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .results {
+            margin-top: 30px;
+        }
+
+        .result-card {
+            background: white;
+            border: 1px solid #e0e0e0;
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 20px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+            transition: all 0.3s ease;
+        }
+
+        .result-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+        }
+
+        .result-card h3 {
+            color: #333;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .result-card .content {
+            line-height: 1.6;
+            color: #555;
+            /* Debugging styles removed */
+            /* border: 2px solid red !important; */
+            /* background-color: #f0f8ff !important; */
+            /* min-height: 20px; */
+        }
+
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #666;
+        }
+
+        .spinner {
+            border: 3px solid #f3f3f3;
+            /* Cerebras Theme: Orange spinner accent */
+            border-top: 3px solid #F37021;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .error {
+            background: #ffe6e6; /* Keep light red for error indication */
+            color: #c00; /* Darker red text */
+            padding: 15px;
+            border-radius: 10px;
+            margin: 10px 0;
+            border-left: 4px solid #c00; /* Darker red border */
+        }
+
+        .success {
+            background: #e6ffe6; /* Keep light green for success */
+            color: #006400; /* Darker green text */
+            padding: 15px;
+            border-radius: 10px;
+            margin: 10px 0;
+            border-left: 4px solid #006400; /* Darker green border */
+        }
+
+        .language-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .flag {
+            font-size: 1.5rem;
+            margin-right: 8px;
+        }
+
+        .demo-section {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+
+        .demo-links {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .demo-link {
+            background: white;
+            /* Cerebras Theme: Orange demo link */
+            color: #F37021;
+            text-decoration: none;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 14px;
+            border: 1px solid #F37021; /* Orange border */
+            transition: all 0.3s ease;
+        }
+
+        .demo-link:hover {
+            /* Cerebras Theme: Orange hover for demo link */
+            background: #F37021;
+            color: white;
+        }
+
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 2rem;
+            }
+            
+            .main-content {
+                padding: 20px;
+            }
+            
+            .demo-links {
+                flex-direction: column;
+            }
+        }
+
+        .summary-translation-container {
+            display: flex;
+            flex-direction: row;
+            gap: 20px; /* Adjust spacing between cards */
+            margin-top: 20px; /* Space above this container */
+        }
+
+        .summary-translation-container > #plain-summary-card,
+        .summary-translation-container > #translation-section {
+            flex: 1; /* Each child takes up equal space */
+            min-width: 0; /* Helps prevent overflow with flex items */
+        }
+
+        /* Responsive stacking for smaller screens */
+        @media (max-width: 992px) { /* Tablet and below, adjust breakpoint as needed */
+            .summary-translation-container {
+                flex-direction: column;
+            }
+            /* flex: 1 on children will make them full width in column mode automatically */
+        }
+
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 2rem;
+            }
+            
+            .main-content {
+                padding: 20px;
+            }
+            
+            .demo-links {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔬 PubMed Abstract Translator</h1>
+            <p>Transform complex medical research into accessible, multilingual summaries</p>
+            <p style="font-size: 0.9rem; opacity: 0.8; margin-top: 10px;">Powered by Qwen 3 32B on Cerebras</p>
+        </div>
+        
+        <div class="main-content">
+            <div class="input-section">
+                <div class="api-config">
+                    <h3>API Configuration</h3>
+                    <div class="input-group">
+                        <label for="openrouter-api-key">OpenRouter API Key</label>
+                        <input type="password" id="openrouter-api-key" placeholder="Enter your OpenRouter API Key">
+                    </div>
+                </div>
+
+                <div class="input-group">
+                    <label for="pubmed-url">PubMed Article URL</label>
+                    <input type="url" id="pubmed-url" placeholder="Paste PubMed Article Link Here...">
+                </div>
+                <div class="input-group">
+                    <label for="language-select">Translate to:</label>
+                    <select id="language-select">
+                        <!-- Languages will be populated by JS -->
+                    </select>
+                </div>
+                <button id="process-article-btn">Get Summary & Translation</button>
+            </div>
+
+            <div class="results">
+                <div id="original-abstract-card" class="result-card" style="display:none;">
+                    <h3><span class="flag">📜</span>Original Abstract</h3>
+                    <div id="original-abstract-content" class="content"></div>
+                    <div class="loading" id="original-abstract-loading" style="display: none;"><div class="spinner"></div>Fetching abstract...</div>
+                </div>
+
+                <div class="summary-translation-container"> 
+                    <div id="plain-summary-card" class="result-card" style="display:none;">
+                        <h3><span class="flag">✍️</span>Plain Language Summary (English)</h3>
+                        <div id="plain-summary-content" class="content"></div>
+                        <div class="loading" id="plain-summary-loading" style="display: none;"><div class="spinner"></div>Generating summary...</div>
+                    </div>
+
+                    <div id="translation-section" style="display:none;">
+                        <div id="translation-output-card" class="result-card" style="display:none;">
+                            <h3 id="translation-output-title"></h3>
+                            <div id="translation-output-content" class="content"></div>
+                            <div class="loading" id="translation-loading" style="display: none;"><div class="spinner"></div>Translating...</div>
+                        </div>
+                    </div>
+                </div> 
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // Language mapping for display
+            const languageNames = {
+                'es': 'Spanish',
+                'fr': 'French', 
+                'de': 'German',
+                'it': 'Italian',
+                'pt': 'Portuguese',
+                'zh': 'Chinese',
+                'ja': 'Japanese',
+                'ko': 'Korean',
+                'ar': 'Arabic',
+                'hi': 'Hindi',
+                'ru': 'Russian',
+                'tl': 'Tagalog (Filipino)',
+                'ceb': 'Cebuano'
+            };
+
+            const languageFlags = {
+                'es': '🇪🇸',
+                'fr': '🇫🇷',
+                'de': '🇩🇪', 
+                'it': '🇮🇹',
+                'pt': '🇧🇷',
+                'zh': '🇨🇳',
+                'ja': '🇯🇵',
+                'ko': '🇰🇷',
+                'ar': '🇸🇦',
+                'hi': '🇮🇳',
+                'ru': '🇷🇺',
+                'tl': '🇵🇭',
+                'ceb': '🇵🇭'
+            };
+
+            // DOM Elements
+            const openrouterApiKeyInput = document.getElementById('openrouter-api-key');
+            const pubmedUrlInput = document.getElementById('pubmed-url');
+            const processArticleBtn = document.getElementById('process-article-btn');
+
+            const originalAbstractCard = document.getElementById('original-abstract-card');
+            const originalAbstractContent = document.getElementById('original-abstract-content');
+            const originalAbstractLoading = document.getElementById('original-abstract-loading');
+
+            const plainSummaryCard = document.getElementById('plain-summary-card');
+            const plainSummaryContent = document.getElementById('plain-summary-content');
+            const plainSummaryLoading = document.getElementById('plain-summary-loading');
+
+            const translationSection = document.getElementById('translation-section');
+            const languageSelect = document.getElementById('language-select');
+            const translationOutputCard = document.getElementById('translation-output-card');
+            const translationOutputTitle = document.getElementById('translation-output-title');
+            const translationOutputContent = document.getElementById('translation-output-content');
+            const translationLoading = document.getElementById('translation-loading');
+            
+            // For displaying general status/errors, assuming you might add these elements
+            // If not, these lines can be removed and showError/showStatus adapted
+            const errorDiv = document.createElement('div'); // Placeholder, ideally create this in HTML
+            errorDiv.className = 'error';
+            errorDiv.style.display = 'none';
+            document.querySelector('.main-content').appendChild(errorDiv);
+
+
+            const statusDiv = document.createElement('div'); // Placeholder
+            statusDiv.className = 'status';
+            statusDiv.style.display = 'none';
+            document.querySelector('.main-content').appendChild(statusDiv);
+
+            let currentAbstract = '';
+            let currentSummary = '';
+
+            // Languages for dropdown
+            const languages = [
+                { code: "es", name: "Spanish", flag: "🇪🇸" },
+                { code: "fr", name: "French", flag: "🇫🇷" },
+                { code: "de", name: "German", flag: "🇩🇪" },
+                { code: "ja", name: "Japanese", flag: "🇯🇵" },
+                { code: "ko", name: "Korean", flag: "🇰🇷" },
+                { code: "zh-CN", name: "Chinese (Simplified)", flag: "🇨🇳" },
+                { code: "ar", name: "Arabic", flag: "🇸🇦" },
+                { code: "hi", name: "Hindi", flag: "🇮🇳" },
+                { code: "pt", name: "Portuguese", flag: "🇵🇹" },
+                { code: "ru", name: "Russian", flag: "🇷🇺" },
+                { code: "it", name: "Italian", flag: "🇮🇹" },
+                { code: "nl", name: "Dutch", flag: "🇳🇱" },
+                { code: "sv", name: "Swedish", flag: "🇸🇪" },
+                { code: "fi", name: "Finnish", flag: "🇫🇮" },
+                { code: "el", name: "Greek", flag: "🇬🇷" },
+                { code: "he", name: "Hebrew", flag: "🇮🇱" },
+                { code: "id", name: "Indonesian", flag: "🇮🇩" },
+                { code: "ms", name: "Malay", flag: "🇲🇾" },
+                { code: "th", name: "Thai", flag: "🇹🇭" },
+                { code: "tr", name: "Turkish", flag: "🇹🇷" },
+                { code: "vi", name: "Vietnamese", flag: "🇻🇳" },
+                { code: "pl", name: "Polish", flag: "🇵🇱" },
+                { code: "uk", name: "Ukrainian", flag: "🇺🇦" },
+                { code: "tl", name: "Tagalog", flag: "🇵🇭" },
+                { code: "ceb", name: "Cebuano", flag: "🇵🇭" },
+                // Add more languages as needed based on Qwen3's capabilities
+                // Qwen supports 100+ languages
+            ];
+
+            function populateLanguages() {
+                languageSelect.innerHTML = ''; // Clear existing options
+                languages.forEach(lang => {
+                    const option = document.createElement('option');
+                    option.value = lang.code;
+                    option.textContent = `${lang.flag} ${lang.name}`;
+                    languageSelect.appendChild(option);
+                });
+            }
+
+            function showStatus(message, type = "info") {
+                statusDiv.textContent = message;
+                statusDiv.className = `status ${type}`; 
+                statusDiv.style.display = 'block';
+                if (type === "info" || type === "success") {
+                    setTimeout(() => {
+                        if (statusDiv.textContent === message) {
+                             statusDiv.style.display = 'none';
+                        }
+                    }, 5000);
+                }
+            }
+
+            function showError(message) {
+                errorDiv.textContent = `❌ ${message}`;
+                errorDiv.style.display = 'block';
+            }
+
+            function hideError() {
+                errorDiv.style.display = 'none';
+            }
+            
+            function getPubMedIdFromUrl(url) {
+                const match = url.match(/(?:pubmed\.ncbi\.nlm\.nih\.gov\/|www\.ncbi\.nlm\.nih\.gov\/pubmed\/)(\d+)/);
+                if (match && match[1]) return match[1];
+                // Fallback for just PMID if it's a plain number string
+                const pmidMatch = url.match(/^\s*\d+\s*$/);
+                return pmidMatch ? pmidMatch[0].trim() : null;
+            }
+
+            const fixedModelId = "qwen/qwen3-32b"; // Corrected Hardcoded model ID
+
+            async function callOpenRouterAPI(apiKey, messages, onChunkCallback) {
+                const OPENROUTER_API_URL = "https://openrouter.ai/api/v1/chat/completions";
+                try {
+                    const response = await fetch(OPENROUTER_API_URL, {
+                        method: "POST",
+                        headers: {
+                            "Authorization": `Bearer ${apiKey}`,
+                            "Content-Type": "application/json",
+                            "HTTP-Referer": window.location.origin, 
+                        },
+                        body: JSON.stringify({
+                            model: fixedModelId, 
+                            messages: messages,
+                            max_tokens: 1500, 
+                            temperature: 0.7,
+                            stream: true, // Enable streaming
+                            provider: { // Explicitly request Cerebras as the provider
+                                "only": ["Cerebras"]
+                            }
+                        })
+                    });
+
+                    if (!response.ok) {
+                        const errorData = await response.json().catch(() => ({})); // Try to get error details
+                        throw new Error(errorData.error?.message || `API request failed: ${response.status}`);
+                    }
+
+                    const reader = response.body.getReader();
+                    const decoder = new TextDecoder();
+                    let buffer = '';
+
+                    while (true) {
+                        const { value, done } = await reader.read();
+                        if (done) {
+                            break; // Stream finished
+                        }
+                        buffer += decoder.decode(value, { stream: true });
+
+                        let eolIndex;
+                        while ((eolIndex = buffer.indexOf('\n')) >= 0) {
+                            const line = buffer.substring(0, eolIndex).trim();
+                            buffer = buffer.substring(eolIndex + 1);
+
+                            if (line.startsWith('data: ')) {
+                                const dataStr = line.substring(5).trim();
+                                if (dataStr === '[DONE]') {
+                                    console.log('Stream [DONE]');
+                                    return; // Signal completion
+                                }
+                                try {
+                                    const data = JSON.parse(dataStr);
+                                    if (data.choices && data.choices[0] && data.choices[0].delta && data.choices[0].delta.content) {
+                                        // Log the raw delta content from API before callback
+                                        console.log('API Delta Content:', data.choices[0].delta.content);
+                                        onChunkCallback(data.choices[0].delta.content);
+                                    }
+                                } catch (e) {
+                                    // Might be a comment or malformed JSON, log and continue
+                                    console.warn('Error parsing stream data chunk:', e, 'Chunk:', dataStr);
+                                }
+                            }
+                        }
+                    }
+                } catch (error) {
+                    console.error('OpenRouter API stream error:', error);
+                    showError(`AI API Stream Error: ${error.message}`);
+                    throw error; 
+                }
+            }
+
+
+            async function generateSummary(apiKey, text, onChunkCallback) {
+                showStatus("Generating plain language summary...");
+                plainSummaryLoading.style.display = 'block';
+                plainSummaryContent.textContent = ''; // Clear previous content for streaming
+                hideError();
+
+                const messages = [
+                    {
+                        "role": "system",
+                        "content": "You are an expert in medical research. Convert the following medical research abstract into a plain language summary that a non-medical person can understand. Keep it concise but informative, avoiding technical jargon."
+                    },
+                    {
+                        "role": "user",
+                        "content": text
+                    }
+                ];
+                // callOpenRouterAPI will now handle chunks via callback
+                return await callOpenRouterAPI(apiKey, messages, onChunkCallback);
+            }
+
+            async function translateText(apiKey, text, targetLanguage, onChunkCallback) {
+                const targetLanguageName = languages.find(l => l.code === targetLanguage)?.name || targetLanguage;
+                showStatus(`Translating to ${targetLanguageName}...`);
+                translationLoading.style.display = 'block';
+                translationOutputCard.style.display = 'none'; // Keep card hidden until content starts or finishes
+                translationOutputContent.textContent = ''; // Clear previous content for streaming
+                hideError();
+
+                const messages = [
+                    {
+                        "role": "system",
+                        "content": `You are an expert translator. Translate the following text into ${targetLanguageName}. If the text is already in ${targetLanguageName}, indicate that and provide the original text.`
+                    },
+                    {
+                        "role": "user",
+                        "content": text
+                    }
+                ];
+                // callOpenRouterAPI will now handle chunks via callback
+                return await callOpenRouterAPI(apiKey, messages, onChunkCallback);
+            }
+
+            processArticleBtn.addEventListener('click', async () => {
+                const pubmedUrl = pubmedUrlInput.value.trim();
+                const apiKey = openrouterApiKeyInput.value.trim();
+                const targetLanguageCode = languageSelect.value; // Get target language upfront
+
+                if (!pubmedUrl) {
+                    showError("Please enter a PubMed article URL.");
+                    return;
+                }
+                if (!apiKey) {
+                    showError("Please enter your OpenRouter API Key.");
+                    return;
+                }
+                if (!targetLanguageCode) { // Add check for selected language
+                    showError("Please select a target language.");
+                    return;
+                }
+
+                // Reset UI
+                hideError();
+                originalAbstractCard.style.display = 'block'; 
+                originalAbstractContent.textContent = '';
+                originalAbstractLoading.style.display = 'block';
+                plainSummaryCard.style.display = 'none';
+                plainSummaryContent.textContent = '';
+                translationSection.style.display = 'none'; // Keep this hidden initially
+                translationOutputCard.style.display = 'none';
+                translationOutputContent.textContent = '';
+                currentAbstract = '';
+                currentSummary = '';
+                processArticleBtn.disabled = true; // Disable button for the whole process
+
+                try {
+                    const pubmedIdForBackend = pubmedUrlInput.value.trim(); 
+                    if (!getPubMedIdFromUrl(pubmedIdForBackend)) { 
+                        showError("Invalid PubMed URL or ID format. Please enter a valid URL (e.g., https://pubmed.ncbi.nlm.nih.gov/12345678) or a PMID (e.g., 12345678).");
+                        originalAbstractLoading.style.display = 'none';
+                        processArticleBtn.disabled = false; // Re-enable on early exit
+                        return;
+                    }
+
+                    // Step 1: Fetch Abstract
+                    showStatus("Fetching abstract via backend...");
+                    const backendUrl = `http://127.0.0.1:5000/api/fetch-pubmed-abstract?pubmedIdOrUrl=${encodeURIComponent(pubmedIdForBackend)}`;
+                    const response = await fetch(backendUrl);
+
+                    if (!response.ok) {
+                        const errorData = await response.json().catch(() => ({ error: "Failed to fetch abstract. Server returned an error." }));
+                        throw new Error(errorData.error || `Failed to fetch abstract. Status: ${response.status}`);
+                    }
+                    const abstractData = await response.json();
+
+                    if (!abstractData || !abstractData.abstract || abstractData.abstract === "Abstract not found") {
+                        showError(abstractData.error || "Could not fetch or parse abstract. The article might not have an abstract, or the PMID is incorrect.");
+                        originalAbstractLoading.style.display = 'none';
+                        originalAbstractContent.textContent = abstractData.title ? `Title: ${abstractData.title}\n\n(Abstract not found or not applicable)` : 'Article not found or no abstract available.';
+                        processArticleBtn.disabled = false; // Re-enable on early exit
+                        return;
+                    }
+
+                    currentAbstract = abstractData.abstract;
+                    originalAbstractContent.innerHTML = `<strong>Title:</strong> ${abstractData.title}<br><br>${currentAbstract}`;
+                    originalAbstractLoading.style.display = 'none';
+                    showStatus(`Abstract for PMID: ${abstractData.pmid} fetched successfully.`, "success");
+
+                    // Step 2: Generate Plain Language Summary
+                    showStatus("Generating plain language summary..."); 
+                    plainSummaryLoading.style.display = 'block';
+                    plainSummaryCard.style.display = 'block'; 
+                    // Pass callback to update UI for summary
+                    await generateSummary(apiKey, currentAbstract, (chunk) => {
+                        plainSummaryContent.textContent += chunk;
+                        plainSummaryLoading.style.display = 'none'; // Hide spinner once first chunk arrives
+                    });
+                    // currentSummary will not be set directly by generateSummary anymore if it's streaming
+                    // We'll use plainSummaryContent.textContent as the source for translation
+                    currentSummary = plainSummaryContent.textContent; // Update currentSummary after streaming is done
+                    showStatus("Summary generated successfully.", "success");
+
+                    // Step 3: Translate the Plain Language Summary
+                    showStatus("Translating summary..."); 
+                    translationSection.style.display = 'block'; 
+                    // translationOutputCard.style.display = 'block'; // Deferred to after title is set
+                    // translationLoading.style.display = 'block'; // Will be set before streaming
+                    translationOutputContent.textContent = ''; // Ensure it's clear before streaming new translation
+                    
+                    // Set the title for the translation card FIRST
+                    const selectedLang = languages.find(l => l.code === targetLanguageCode);
+                    const langName = selectedLang?.name || targetLanguageCode;
+                    const langFlag = selectedLang?.flag || '🏳️';
+                    translationOutputTitle.innerHTML = `<span class="flag">🌍</span> Translation <span class="flag">${langFlag}</span> ${langName}`;
+                    
+                    // Now show the card with its title, and the loading spinner for the content area
+                    translationOutputCard.style.display = 'block'; 
+                    translationLoading.style.display = 'block';
+
+                    // Log the summary being sent for translation and the TARGET LANGUAGE
+                    const dynamicLangName = languages.find(l => l.code === targetLanguageCode)?.name || targetLanguageCode;
+                    console.log(`Text to be translated (currentSummary for ${dynamicLangName}):`);
+                    console.log(currentSummary);
+
+                    // Pass callback to update UI for translation
+                    await translateText(apiKey, currentSummary, targetLanguageCode, (chunk) => {
+                        console.log(`Chunk received for ${dynamicLangName} translation:`, chunk); // Use dynamic language name
+                        translationOutputContent.textContent += chunk;
+                        translationLoading.style.display = 'none'; // Hide spinner once first chunk arrives
+                    });
+                    
+                    console.log('translationOutputCard display style after translateText:', translationOutputCard.style.display);
+                    // FORCIBLY SET IT TO BLOCK AGAIN HERE
+                    if (translationOutputCard.style.display === 'none') {
+                        console.log('Card was none, forcing to block before showing success.');
+                        translationOutputCard.style.display = 'block';
+                    }
+
+                    showStatus("Translation successful.", "success");
+                    
+                } catch (error) {
+                    console.error('Error in processing article:', error);
+                    showError(error.message || "An unexpected error occurred during processing.");
+                    // Ensure loading indicators are hidden if an error occurs mid-process
+                    originalAbstractLoading.style.display = 'none';
+                    plainSummaryLoading.style.display = 'none';
+                    translationLoading.style.display = 'none';
+                } finally {
+                    processArticleBtn.disabled = false; // Re-enable button in all cases
+                }
+            });
+
+            // Initial setup
+            populateLanguages();
+        });
+    </script>
+</body>
+</html>
