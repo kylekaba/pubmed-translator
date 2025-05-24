@@ -18,6 +18,38 @@ This tool was developed to help bridge the gap between dense medical jargon and 
 *   **Cerebras-Themed UI:** Color scheme inspired by Cerebras Systems.
 *   **Explicit Provider Routing:** Configured to specifically request Cerebras as the provider via OpenRouter for Qwen 3 32B model.
 
+## 🌍 Supported Languages for Translation
+
+The tool currently supports translation of the plain language summary into the following languages (selectable in the UI):
+
+*   Arabic
+*   Cebuano
+*   Chinese (Simplified)
+*   Dutch
+*   Finnish
+*   French
+*   German
+*   Greek
+*   Hebrew
+*   Hindi
+*   Indonesian
+*   Italian
+*   Japanese
+*   Korean
+*   Malay
+*   Polish
+*   Portuguese
+*   Russian
+*   Spanish
+*   Swedish
+*   Tagalog
+*   Thai
+*   Turkish
+*   Ukrainian
+*   Vietnamese
+
+*Note: The underlying Qwen 3 32B model supports over 100 languages. More can be added to the dropdown if needed.*
+
 ## 🛠️ Technologies Used
 
 *   **Frontend:**
