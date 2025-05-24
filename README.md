@@ -14,10 +14,7 @@ This tool was developed to help bridge the gap between dense medical jargon and 
 *   **Plain Language Summarization:** Generates a concise, easy-to-understand summary of the abstract in English using Qwen 3 32B.
 *   **Multilingual Translation:** Translates the plain language summary into a variety of user-selected languages, also using Qwen 3 32B.
 *   **Streaming Output:** Both summaries and translations are streamed word-by-word for an improved user experience.
-*   **Responsive UI:** Designed to be usable on different screen sizes.
-*   **Cerebras-Themed UI:** Color scheme inspired by Cerebras Systems.
-*   **Explicit Provider Routing:** Configured to specifically request Cerebras as the provider via OpenRouter for Qwen 3 32B model.
-
+  
 ## 🌍 Supported Languages for Translation
 
 The tool currently supports translation of the plain language summary into the following languages (selectable in the UI):
